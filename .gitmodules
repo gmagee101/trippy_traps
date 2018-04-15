@@ -1,0 +1,3 @@
+[submodule "lib/avr-i2c"]
+	path = lib/avr-i2c
+	url = git@github.com:pietern/avr-i2c.git
