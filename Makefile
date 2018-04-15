@@ -7,7 +7,8 @@ OBJDUMP = avr-objdump
 SIZE = avr-size
 TARGET = demo
 SRC =	src/main.c \
-		src/LightUtilities.c
+		src/LightUtilities.c \
+		src/i2c.c
 
 OBJDIR = ./bin
 OBJ = $(SRC:src/%.c=$(OBJDIR)/%.o)
@@ -67,6 +68,9 @@ flash: $(TARGET).hex
 	@echo flashing board
 	@teensy_loader_cli -mmcu=$(MCU) -w -v $(TARGET).hex
 
+src/i2c.c : lib/avr-i2c/i2c.c
+	cp lib/avr-i2c/i2c.* ./src/
+
 $(OBJDIR) :
 	@echo creating object directory
 	@mkdir -p $(OBJDIR)
@@ -76,4 +80,5 @@ clean:
 	rm -rf $(TARGET).hex
 	rm -rf $(TARGET).map
 	rm -rf $(TARGET).elf
+	rm -rf src/i2c.*
 	rm -rf $(OBJDIR)
