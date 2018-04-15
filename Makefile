@@ -8,6 +8,8 @@ SIZE = avr-size
 TARGET = demo
 SRC =	src/main.c \
 		src/LightUtilities.c \
+		src/print.c \
+		src/usb_debug_only.c \
 		src/i2c.c
 
 OBJDIR = ./bin

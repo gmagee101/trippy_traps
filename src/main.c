@@ -3,6 +3,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include "LightUtilities.h"
+#include "print.h"
 
 #define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 
@@ -19,7 +20,7 @@ static uint8_t ColorList[3*10] = {
     DEEP_PINK
 };
 
-uint8_t i = 0;
+static uint8_t i = 0;
 static volatile uint8_t ColorIndex[2] = {0, 1};
 
 int core(void);
@@ -35,11 +36,11 @@ int core(void)
 {
     CPU_PRESCALE(0x01);
     TCNT1 = 63974;   // for 1 sec at 16 MHz  (LIE)
+    usb_init();
 
     //TCCR1A = 0x00;
     TCCR1B = (1<<CS10) | (1<<CS12);  // Timer mode with 1024 prescaler
     TIMSK1 = (1 << TOIE1);   // Enable timer1 overflow interrupt(TOIE1)
-
     sei();
 
     DDRD |= 0xFF;
@@ -47,6 +48,8 @@ int core(void)
     DDRB |= (1<<7);
 
     Lights_Init(2);
+    _delay_ms(2000); //usb debug needs a second or two to initialize (annoying)
+    print_P("usb debug print enabled\n");
     while (1)
     {
         Lights_SetColor(0, ColorList[ColorIndex[0]*3], ColorList[(ColorIndex[0]*3) + 1], ColorList[(ColorIndex[0]*3)+ 2]);
@@ -67,8 +70,6 @@ ISR (TIMER1_OVF_vect)    // Timer1 ISR
     {
         for (j = 0; j < sizeof(ColorIndex); j++)
         {
-
-
             ColorIndex[j]++;
             if (ColorIndex[j] > (sizeof(ColorList)-1)/3)
             {
