@@ -18,7 +18,7 @@ OBJ = $(SRC:src/%.c=$(OBJDIR)/%.o)
 F_CPU = 8000000
 DEBUG = dwarf-2
 
-CFLAGS = -g$(DEBUG)
+CFLAGS = -g
 CFLAGS += -DF_CPU=$(F_CPU)UL
 CFLAGS += -Os
 CFLAGS += -funsigned-char

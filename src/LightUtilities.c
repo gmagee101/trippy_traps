@@ -3,6 +3,7 @@
 
 static uint8_t LightData[256 * 3] = {0}; //3 bytes per LED, max 256 LEDs (0 thru 255)
 static uint8_t NumLeds = 0;
+volatile static uint16_t ByteCount = 0;
 
 static const uint8_t gamma8[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -22,12 +23,13 @@ static const uint8_t gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
-static void lightOutputHelper(uint8_t * pixels, uint16_t count);
+void lightOutputHelper(volatile uint8_t * pixels, uint16_t count);
 
 void Lights_Init(uint8_t num_leds)
 {
     //No need to size check, data buffer can hold data for up to 0xFF LEDs
     NumLeds = num_leds;
+    ByteCount = NumLeds * 3;
 
 }
 
@@ -35,7 +37,7 @@ void Lights_SetColor(uint8_t led_id, uint8_t r, uint8_t g, uint8_t b)
 {
     if (led_id > NumLeds)
     {
-        return;
+        //return;
     }
     uint8_t index = 3 * led_id;
     LightData[index++] = gamma8[g];
@@ -45,7 +47,7 @@ void Lights_SetColor(uint8_t led_id, uint8_t r, uint8_t g, uint8_t b)
 
 void Lights_LightOutput(void)
 {
-    lightOutputHelper(LightData, NumLeds * 3);
+    lightOutputHelper(LightData, ByteCount);
 }
 
 void Lights_SetAllLedsToColor(uint8_t r, uint8_t g, uint8_t b)
@@ -60,7 +62,10 @@ void Lights_SetAllLedsToColor(uint8_t r, uint8_t g, uint8_t b)
 }
 
 //Private Functions
-void lightOutputHelper(uint8_t * pixels, uint16_t count)
+#if (F_CPU != 8000000)
+#warning CPU Frequency may not be set right for assembly routine
+#endif
+void lightOutputHelper(volatile uint8_t * pixels, uint16_t count)
 {
 	asm volatile(
 	"rgbController:"				//output
@@ -71,10 +76,10 @@ void lightOutputHelper(uint8_t * pixels, uint16_t count)
 	"ld     r18,X+\n\t"			// get first data byte
 	
 	"loop1:"
-	"sbi	0x05, 7\n\t"		//	set Bit   //B7
+	"sbi	0x08, 7\n\t"		//	set Bit   //C7
 	"lsl    r18\n\t"			// 1   +1 next bit into C, MSB first
 	"brcs   L1\n\t"				// 1/2 +2 branch if 1
-	"cbi	0x05, 7\n\t"		// clear bit   //B7
+	"cbi	0x08, 7\n\t"		// clear bit   //C7
 	"nop\n\t"					// 1   +4
 	"bst    r18, 7\n\t"			// 1   +5 save last bit of data for fast branching
 	"subi   r19, 1\n\t"			// 1   +6 how many more bits for this byte?
@@ -85,15 +90,15 @@ void lightOutputHelper(uint8_t * pixels, uint16_t count)
 	"nop\n\t"					// 1   +4
 	"bst    r18, 7\n\t"			// 1   +5 save last bit of data for fast branching
 	"subi   r19, 1\n\t"			// 1   +6 how many more bits for this byte
-	"cbi	0x05, 7\n\t"		// clear bit  //B7
+	"cbi    0x08, 7\n\t"		// clear bit  //C7
 	"brne   loop1\n\t"			// 2/1 +8 10 total for 1 bit (fall thru if last bit)
 	
 	"bit8:"
 	"ldi    r19, 7\n\t"			// 1   +9 bit count for next byte
-	"sbi	0x05, 7\n\t"		// set Bit   //B7
+	"sbi    0x08, 7\n\t"		// set Bit   //C7
 	"brts   L2\n\t"				// 1/2 +1 branch if last bit is a 1
 	"nop\n\t"					// 1   +2
-	"cbi	0x05, 7\n\t"		// clear bit   //B7
+	"cbi    0x08, 7\n\t"		// clear bit   //C7
 	"ld     r18, X+\n\t"		// 2   +4 fetch next byte
 	"sbiw   r24, 1\n\t"			// 2   +6 dec byte counter
 	"brne   loop1\n\t"			// 2   +8 loop back or return
@@ -103,7 +108,7 @@ void lightOutputHelper(uint8_t * pixels, uint16_t count)
 	"L2:"
 	"ld     r18, X+\n\t"		// 2   +3 fetch next byte
 	"sbiw   r24, 1\n\t"			// 2   +5 dec byte counter
-	"cbi 0x05, 7\n\t"			// clear bit   B7
+	"cbi    0x08, 7\n\t"		// clear bit   C7
 	"brne   loop1\n\t"			// 2   +8 loop back or return
 	"sei\n\t"
 	"ret"
