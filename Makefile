@@ -11,7 +11,8 @@ SRC =	src/main.c \
 		src/print.c \
 		src/usb_debug_only.c \
 		src/i2c.c \
-		src/LSM9DSO.c
+		src/LSM9DSO.c \
+		src/LightBehaviors.c
 
 OBJDIR = ./bin
 OBJ = $(SRC:src/%.c=$(OBJDIR)/%.o)
